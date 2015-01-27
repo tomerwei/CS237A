@@ -36,6 +36,10 @@ function matchValues( patValue, exprValue , env )
   {
     return [true, env];
   } 
+  else if( patValue instanceof Array && patValue[0] === "_" )
+  {
+    return [true, env ]; 
+  }
   else if( patValue instanceof Array && patValue[0] === 'id' )
   {
     var matchEnv = Object.create( env );
@@ -90,6 +94,28 @@ function ev(ast,env) {
     switch (tag)
     {
       //HW2
+      case "delay":
+        return ['delay', args[0] ];
+
+      case "force":
+        var expr = args[0];
+        if( expr instanceof Array && expr[0] === 'delay' )
+        {
+          return ev( expr[1],env);
+        }
+        else
+        {
+          var res = ev( expr,env);
+          if( isPrimeValue( res ) )
+          {
+            return res;
+          }
+          else
+          {
+            return ev( ['force',res],env );
+          }
+        }
+
       case "cons":
         var x = ev(args[0],env);
         var xs = ev(args[1],env);
