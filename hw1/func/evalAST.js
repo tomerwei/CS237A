@@ -134,8 +134,11 @@ function ev(ast,env) {
           var predCond  = ev( ePred, listEnv );
           if( isBool( predCond ) )
           {
-            var curRes = ev( expr, listEnv );
-            res.push(curRes);
+            if( predCond )
+            {
+              var curRes = ev( expr, listEnv );
+              res.push(curRes);
+            }
           }
           else
           {
