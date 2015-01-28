@@ -1,10 +1,7 @@
 F.evalAST = function(ast) {
-  //throw new TODO("You're supposed to write your own evaluator and hook it up to this method.");
   var env = new Object();
   return ev(ast, env);
-
 };
-
 
 function arrToCons( l )
 {
@@ -50,7 +47,7 @@ function matchValues( patValue, exprValue , env )
            (exprValue instanceof Array && exprValue[0] === 'cons') )
   {
     /*
-  let lst = [1;2::3;4] in
+    let lst = [1;2::3;4] in
     match lst with
     [1;x::x;y] -> y * 10 + x
     */
@@ -95,31 +92,9 @@ function ev(ast,env) {
     {
       //HW2
       case "delay":
-
-        //return ['delay', args[0] ];
         return [ 'delay', args[0], Object.create( env ) ]; 
 
-      case "force":
-      /*
-      var expr = args[0];
-      if( expr instanceof Array && expr[0] === 'closure' && expr[1].length === 0 )
-      {
-        return ev( ['call', expr ] , env);
-      }
-      else
-      {
-        var res = ev( expr,env);
-        if( isPrimeValue( res ) )
-        {
-          return res;
-        }          
-        else
-        {
-          return ev( ['force',res],env );
-        }       
-      }
-      */
-      
+      case "force":      
         var expr = args[0];
         if( expr instanceof Array && expr[0] === 'delay' )
         {
@@ -145,13 +120,11 @@ function ev(ast,env) {
 
       case "set":
         var rhs = ev( args[1], env )
-
         env[ args[0] ] = rhs;
         return rhs;
 
       case "seq": //seq changes the enviornment
         var lhs = ev(args[0],env);
-
         return ev(args[1], env );
 
       case "listComp":
@@ -323,7 +296,7 @@ function ev(ast,env) {
          return functionCall( args, env );
 
       default:
-        throw new Error("Unsupported command");
+        throw new Error("Unsupported command ");
     }
   }
 };
@@ -361,6 +334,13 @@ function functionCall(args, env )
           }
 
           var res = ev( funcBody, funcEnv );
+
+          for (var property in env ) {
+            if( funcEnv.hasOwnProperty(property) &&  ( funcArgs.indexOf(property) === -1 )  ) 
+            {
+                env[property] = funcEnv[property];
+            }
+          }
 
           return res;
         }
