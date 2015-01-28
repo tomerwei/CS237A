@@ -83,6 +83,20 @@ tests(
           'let ones = 1::delay ones in\n' +
           '  take 5 ones',
     expected:  ['cons', 1, ['cons', 1, ['cons', 1, ['cons', 1, ['cons', 1, null]]]]]
+  },
+  {
+    name: 'fibonacci',
+    code: 'let fib = fun n\n -> ' +
+          ' match n with\n' +
+          '| 0 -> 0\n' +
+          '| 1 -> 1\n' +
+          '           | _ -> fib( n-1 ) + fib( n-2 )\n' +
+          'in\n' +
+          '  fib 4 ',
+    expected: 3
   }
+
+
+
 );
 

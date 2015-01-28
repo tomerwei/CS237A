@@ -95,13 +95,35 @@ function ev(ast,env) {
     {
       //HW2
       case "delay":
-        return ['delay', args[0] ];
+
+        //return ['delay', args[0] ];
+        return [ 'delay', args[0], Object.create( env ) ]; 
 
       case "force":
+      /*
+      var expr = args[0];
+      if( expr instanceof Array && expr[0] === 'closure' && expr[1].length === 0 )
+      {
+        return ev( ['call', expr ] , env);
+      }
+      else
+      {
+        var res = ev( expr,env);
+        if( isPrimeValue( res ) )
+        {
+          return res;
+        }          
+        else
+        {
+          return ev( ['force',res],env );
+        }       
+      }
+      */
+      
         var expr = args[0];
         if( expr instanceof Array && expr[0] === 'delay' )
         {
-          return ev( expr[1],env);
+          return ev( expr[1], expr[2] ); //might need to change expr2
         }
         else
         {
@@ -115,7 +137,7 @@ function ev(ast,env) {
             return ev( ['force',res],env );
           }
         }
-
+      
       case "cons":
         var x = ev(args[0],env);
         var xs = ev(args[1],env);
@@ -123,19 +145,13 @@ function ev(ast,env) {
 
       case "set":
         var rhs = ev( args[1], env )
-        if( rhs instanceof Array && rhs[0] === 'closure' )
-        {
-          env = rhs[3];
-        }
+
         env[ args[0] ] = rhs;
         return rhs;
 
       case "seq": //seq changes the enviornment
         var lhs = ev(args[0],env);
-        if( lhs instanceof Array && lhs[0] === 'closure' )
-        {
-          env = rhs[3];
-        }
+
         return ev(args[1], env );
 
       case "listComp":
@@ -178,11 +194,6 @@ function ev(ast,env) {
       case "match":
       //['match', e, p1, e1, p2, e2, ... ]
         var matchExpr = ev(args[0],env);
-        if( matchExpr instanceof Array && matchExpr[0] === 'closure' )
-        {
-          env = matchExpr[3];
-        }
-
         for( i = 1 ; i < args.length; i=i+2 )
         {
           var curPattern = args[i]
@@ -299,17 +310,15 @@ function ev(ast,env) {
 
       case "let":
         var rhs = ev( args[1], env )
-        if( rhs instanceof Array && rhs[0] === 'closure' )
-        {
-          env = rhs[3];
-        }
         env[ args[0] ] = rhs;
         return ev( args[2] ,env);
 
       case "id":
         return env[ args[0] ];
       case "fun":
-        return ['closure', args[0] , args[1] , env];
+        var funcEnv = Object.create( env );
+        //var funcEnv = cloneObject( env );
+        return ['closure', args[0] , args[1] , funcEnv ];
       case "call":
          return functionCall( args, env );
 
@@ -318,6 +327,7 @@ function ev(ast,env) {
     }
   }
 };
+
 
 function isBool( x )
 {
@@ -335,32 +345,31 @@ function functionCall(args, env )
 {
     if( args.length > 0 )
     {
-      var funcClosure = ev(args[0],env);
+      var funcClosure = ev(args[0], env );
       if( funcClosure[0] === "closure" )
       {
-        //var funcEnv = Object.create(env);
-        var funcEnv = env;
-        var funcArgs = funcClosure[1]
+        var funcArgs = funcClosure[1];
         var funcBody = funcClosure[2];
+        var funcEnv  = Object.create( funcClosure[3] );
 
         if( ( args.length - 1 ) === funcArgs.length )
         {
           for( var i = 1 ; i < args.length ; i++ )
           {
             var curParam = funcArgs[i-1];
-            //funcEnv[curParam] = args[i+1];
-            funcEnv[curParam] = ev( args[i], funcEnv );
+            funcEnv[curParam] = ev( args[i], env );
           }
 
-          return ev( funcBody, funcEnv );
+          var res = ev( funcBody, funcEnv );
+
+          return res;
         }
         else if( ( args.length - 1 ) < funcArgs.length )
         {
           for( var i = 1 ; i < args.length ; i++ )
           {
             var curParam = funcArgs[i-1];
-            //funcEnv[curParam] = args[i+1];
-            funcEnv[curParam] = ev( args[i], funcEnv );
+            funcEnv[curParam] = ev( args[i], env );
           }
           return ['closure', funcArgs.slice( args.length - 1 ), funcBody, funcEnv];
         }
