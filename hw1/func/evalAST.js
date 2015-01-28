@@ -115,9 +115,14 @@ function ev(ast,env) {
         return ['cons',x,xs];
 
       case "set":
-        var rhs = ev( args[1], env )
-        env[ args[0] ] = rhs;
-        return rhs;
+        if ( args[0] in env ) 
+        {
+          var rhs = ev( args[1], env );
+          env[ args[0] ] = rhs;
+          return rhs;
+        }
+        else
+          throw new Error("Referenced variable in set op not found in enviornment ");       
 
       case "seq": //seq changes the enviornment
         var lhs = ev(args[0],env);

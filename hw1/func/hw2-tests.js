@@ -94,6 +94,13 @@ tests(
           'in\n' +
           '  fib 4 ',
     expected: 3
+  },
+  {
+    name: 'set of non bound var',
+    code: 'let z = 3\n' +
+          ' in\n' +
+          ' x:= 5; 7\n',
+    shouldThrow: true
   }
 
 
