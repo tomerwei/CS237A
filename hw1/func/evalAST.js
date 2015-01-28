@@ -1,3 +1,8 @@
+/**
+Name: Tomer Weiss
+UID:  104272138
+*/
+
 F.evalAST = function(ast) {
   var env = new Object();
   return ev(ast, env);
@@ -46,11 +51,6 @@ function matchValues( patValue, exprValue , env )
   else if( (patValue instanceof Array && patValue[0] === 'cons') &&  
            (exprValue instanceof Array && exprValue[0] === 'cons') )
   {
-    /*
-    let lst = [1;2::3;4] in
-    match lst with
-    [1;x::x;y] -> y * 10 + x
-    */
     var x  = patValue[1];
     var xs = patValue[2]; 
     var y  = exprValue[1];
@@ -72,10 +72,6 @@ function matchValues( patValue, exprValue , env )
 
   return [false,env];
 };
-
-
-//another type -- 
-//['state', primVal, env ]
 
 function ev(ast,env) {
   if ( typeof ast === "number" || ast === true ||
@@ -287,10 +283,12 @@ function ev(ast,env) {
         return ev( args[2] ,env);
 
       case "id":
-        return env[ args[0] ];
+        if ( args[0] in env ) 
+          return env[ args[0] ];
+        else
+          throw new Error("Referenced variable not bound in enviornment "); 
       case "fun":
         var funcEnv = Object.create( env );
-        //var funcEnv = cloneObject( env );
         return ['closure', args[0] , args[1] , funcEnv ];
       case "call":
          return functionCall( args, env );
@@ -335,14 +333,15 @@ function functionCall(args, env )
 
           var res = ev( funcBody, funcEnv );
 
+          /*code below is for fixing env in case of set and seq*/
           for (var property in env ) {
             if( funcEnv.hasOwnProperty(property) &&  ( funcArgs.indexOf(property) === -1 )  ) 
             {
                 env[property] = funcEnv[property];
             }
           }
-
           return res;
+
         }
         else if( ( args.length - 1 ) < funcArgs.length )
         {
@@ -353,7 +352,6 @@ function functionCall(args, env )
           }
           return ['closure', funcArgs.slice( args.length - 1 ), funcBody, funcEnv];
         }
-
       }
     }
 
