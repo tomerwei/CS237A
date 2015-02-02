@@ -3,21 +3,23 @@ function match(value /* , pat1, fun1, pat2, fun2, ... */)
   // ...
   for ( i = 1; i < arguments.length; i=i+2 ) 
   {
-  	var curPat = arguments[i];
-  	var curFun = arguments[i+1];
+  	var p = arguments[i];
+  	var f = arguments[i+1];
+  	var bindings = []
+  	try 
+  	{ 
+	    var isMatched = matchValues( p, value, bindings );
 
-    var bindings = matchValues( curPat, value );
-    if( bindings !== undefined )
-    {	
-    	if( bindings instanceof Array )
-    	{
-	    	return curFun.apply( null, bindings );
+		if( isMatched )
+		{
+	    	return f.apply( null, bindings );
 	    }
-	    else
-	    {
-	    	return curFun.apply( null, [bindings] );
-	    }
-    }
+	}
+	finally
+	{
+
+	}
+
   }
 
   throw new Error("match failed");
@@ -45,10 +47,10 @@ function tryManyPattern( patValue, exprValue )
 };
 */
 
-function _ () 
+function _() 
 {
 	return arguments;
-}ß
+};
 
 function many(pat) 
 {
@@ -68,79 +70,78 @@ function many(pat)
 
 	}
 	return bindings;
-}
+};
 
 //f.apply(null,argument array)
-//
 function when(f) 
 {
 	return f;
-}
+};
 
 
-function matchValues( patValue, exprValue )
+function matchp(p,v,bindings)
 {
-  var bindings = []
+	if( patValue instanceof Array && exprValue instanceof Array )
+	{
+		for(i = 0; i < patValue.length; i++)
+		{	
+			var curPat = patValue[i];
+			var curExpr = exprValue.slice(i);
 
+			//matchp( curPat, )
+		}
+		return bindings;
+	}
+	else if(typeof pat !== "function") //pattern is constant type
+	{
+		if( patValue === exprValue )
+		{
+			return bindings;
+		}
+		else
+		{
+			return undefined;
+		}
+	}
+	else
+	{
+		var res = p(v);
+		return res;
+	}
+};
+
+
+function matchValues( patValue, exprValue,bindings )
+{
   if( patValue === exprValue )
   {
-    return [];
+    return true;
   } 
   else if ( typeof patValue === "function")
   {
   	if( patValue === _ )
   	{	
-  		return exprValue;
+		bindings.push(exprValue);
+		return true;
   	}
   	else if( patValue.apply(null, [exprValue] ) )
 	{
-		return exprValue;
+		bindings.push(exprValue);
+		return true;
 	}
   }
   else if( patValue instanceof Array && exprValue instanceof Array )
   {
 
-	for( i = 0 ; i < patValue.length ; i ++ )
+	for( i = 0 ; i < patValue.length ; i++ )
 	{
-
-		var curPat = patValue[i];
-		var curExpr = exprValue.slice(i);
-		var isManyPattern = curPat.apply( null, curExpr );
-		if( isManyPattern )
-		{
-			var tryManyPattern = curPat( exprValue.slice(i) )
-			if( tryManyPattern.length > 0 )
-			{
-				bindings.push( tryManyPattern );
-			}
-			else
-			{
-				return undefined;
-			}
-
-		}
-		else
-		{
-    		var matchBindings = matchValues( curPat, exprValue[i] )
-    		if( matchBindings === undefined )
-    		{
-    			return undefined;
-    		}
-    		else if( matchBindings instanceof Array && matchBindings.length === 0  )
-    		{
-    			continue;
-    		}
-    		else
-    		{
-      			bindings.push( matchBindings );
-    		}    			
-		}
-
-
+		var res = matchValues( patValue[i], exprValue[i],bindings );
+		if( !res )
+			return false;
 	}
-	return bindings;
+	return true;
     
   }
 
-  return undefined;
+  return false;
 };
