@@ -1,6 +1,10 @@
+/*
+Name: Tomer Weiss
+UID:  104272138
+*/
+
 function match(value /* , pat1, fun1, pat2, fun2, ... */) 
 {
-  // ...
   for ( i = 1; i < arguments.length; i=i+2 ) 
   {
   	var p = arguments[i];
@@ -26,6 +30,10 @@ function match(value /* , pat1, fun1, pat2, fun2, ... */)
 };
 
 
+function isOne(x) {
+  return typeof x === 'number' && x === 1 ;
+};
+
 function isBool( x )
 {
   return ( x === true) || ( x === false);
@@ -43,32 +51,6 @@ function _()
 	return arguments;
 };
 
-/*
-function many(pat,expr,bindings) 
-{
-	if( expr.length > 0 )
-	{
-		for( i = 0 ; i < expr.length ; i++ )
-		{
-			var res = matchValues( pat, expr, bindings )
-			if( res )
-			{
-				bindings.push( matchBindings );
-			}
-			else
-			{
-				return false;
-			}
-		}
-		return true;
-	}	
-	return false;
-};
-*/
-
-//match([1,2,3,4])
-//  [_,_,_,_] equiv to
-// [many([_,_])], function(ps) { ps = [1,2,3,4]}
 
 function many(p)
 {
@@ -94,43 +76,11 @@ function many(p)
 	};
 };
 
-//f.apply(null,argument array)
 function when(f) 
 {
 	return f;
 };
 
-
-function matchp(p,v,bindings)
-{
-	if( patValue instanceof Array && exprValue instanceof Array )
-	{
-		for(i = 0; i < patValue.length; i++)
-		{	
-			var curPat = patValue[i];
-			var curExpr = exprValue.slice(i);
-
-			//matchp( curPat, )
-		}
-		return bindings;
-	}
-	else if(typeof pat !== "function") //pattern is constant type
-	{
-		if( patValue === exprValue )
-		{
-			return bindings;
-		}
-		else
-		{
-			return undefined;
-		}
-	}
-	else
-	{
-		var res = p(v);
-		return res;
-	}
-};
 
 
 function matchValues( patValue, exprValue,bindings )
@@ -151,6 +101,10 @@ function matchValues( patValue, exprValue,bindings )
 		bindings.push(exprValue);
 		return true;
 	}
+  }
+  else if ( typeof patValue === "function" && patValue.name === "manyImpl" )
+  {
+  	throw new Error("Match failed, many can appear only inside arrays");
   }
   else if( patValue instanceof Array && exprValue instanceof Array )
   {
