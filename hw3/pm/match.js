@@ -37,39 +37,61 @@ function isPrimeValue( x )
   return isBool(x) || ( typeof x === "number" ) || ( x === null );
 };
 
-/*
-function tryManyPattern( patValue, exprValue )
-{
-	if( patValue instanceof Array && exprValue instanceof Array )
-	{
-	}
-	return true;
-};
-*/
 
 function _() 
 {
 	return arguments;
 };
 
-function many(pat) 
+/*
+function many(pat,expr,bindings) 
 {
-	bindings = []
-
-	for( i = 1 ; i < arguments.length ; i++ )
+	if( expr.length > 0 )
 	{
-		var matchBindings = matchValues( pat, arguments[i] )
-		if( matchBindings.length > 0 )
+		for( i = 0 ; i < expr.length ; i++ )
 		{
-			bindings.push( matchBindings );
+			var res = matchValues( pat, expr, bindings )
+			if( res )
+			{
+				bindings.push( matchBindings );
+			}
+			else
+			{
+				return false;
+			}
 		}
-		else
-		{
-			break;
-		}
+		return true;
+	}	
+	return false;
+};
+*/
 
-	}
-	return bindings;
+//match([1,2,3,4])
+//  [_,_,_,_] equiv to
+// [many([_,_])], function(ps) { ps = [1,2,3,4]}
+
+function many(p)
+{
+	return function manyImpl(exprArray,bindings) 
+	{
+		var matchBindings = [];
+		for( var i = 0 ; i < exprArray.length ; i++ )
+		{
+			var res = matchValues( p, exprArray[i], matchBindings )
+			if( res )
+			{
+				//bindings.push( matchBindings );
+				continue;
+			}
+			else
+			{
+				bindings.push( matchBindings );
+				return exprArray.slice(i);
+			}
+		}
+		bindings.push( matchBindings );
+		return [];
+	};
 };
 
 //f.apply(null,argument array)
@@ -117,7 +139,7 @@ function matchValues( patValue, exprValue,bindings )
   {
     return true;
   } 
-  else if ( typeof patValue === "function")
+  else if ( typeof patValue === "function" && patValue.name !== "manyImpl" )
   {
   	if( patValue === _ )
   	{	
@@ -133,11 +155,32 @@ function matchValues( patValue, exprValue,bindings )
   else if( patValue instanceof Array && exprValue instanceof Array )
   {
 
-	for( i = 0 ; i < patValue.length ; i++ )
+	for( var i = 0 ; i < patValue.length ; i++ )
 	{
-		var res = matchValues( patValue[i], exprValue[i],bindings );
-		if( !res )
-			return false;
+		var curPat = patValue[i];
+		if( typeof curPat === "function" && curPat.name === "manyImpl" )
+		{
+			var exprToMatch = curPat( exprValue.slice(i), bindings );
+			if( (i+1) === patValue.length && exprToMatch.length === 0 )
+			{
+				return true;
+			}
+			else if( ((i+1) === patValue.length && exprToMatch.length > 0 ) ||
+						((i+1) < patValue.length && exprToMatch.length === 0 ) )
+			{
+				return false 
+			}
+			else
+			{
+				return matchValues( patValue.slice(i+1), exprToMatch, bindings );
+			}
+		}
+		else
+		{
+			var res = matchValues( patValue[i], exprValue[i],bindings );
+			if( !res )
+				return false;
+		}	
 	}
 	return true;
     
