@@ -119,8 +119,8 @@ function matchValues( patValue, exprValue,bindings )
 			{
 				return true;
 			}
-			else if( ((i+1) === patValue.length && exprToMatch.length > 0 ) ||
-						((i+1) < patValue.length && exprToMatch.length === 0 ) )
+			else if( ((i+1) === patValue.length && exprToMatch.length > 0 ) 
+				/* || ((i+1) < patValue.length && exprToMatch.length === 0 ) */ )
 			{
 				return false 
 			}
@@ -136,7 +136,7 @@ function matchValues( patValue, exprValue,bindings )
 				return false;
 		}	
 	}
-	return true;
+	return patValue.length === exprValue.length;
     
   }
 
