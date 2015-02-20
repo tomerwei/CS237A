@@ -5,6 +5,14 @@ initialize(), which does nothing.
 (This method has the same semantics as JavaScript's === operator.)
 !== x, which returns true if the receiver and x are not the same object, false otherwise.
 (This method has the same semantics as JavaScript's !== operator.)
+
+Number (a subclass of Object)
+isNumber() returns true
++ anotherNumber returns the sum of the receiver and anotherNumber
+- anotherNumber 
+* anotherNumber 
+/ anotherNumber 
+% anotherNumber 
 */
 OO.initializeCT = function() 
 {
@@ -18,8 +26,17 @@ OO.initializeCT = function()
   objectClass["instVarNames"] = [];
   objectClass["name"] = "Object";
   OO.declareMethod("Object","initialize", function(_this) { } );
-  OO.declareMethod("Object","===", function(_this, x) { return OO.getClass("Object") === x } );
-  OO.declareMethod("Object","!==", function(_this, x) { return OO.getClass("Object") === x } );
+  OO.declareMethod("Object","isNumber", function(_this) { return false } );
+  OO.declareMethod("Object","===", function(_this, x) { return _this === x } );
+  OO.declareMethod("Object","!==", function(_this, x) { return _this !== x } );
+
+  OO.declareClass("Number", "Object", []);
+  OO.declareMethod("Number","isNumber", function(_this) { return true } );
+  OO.declareMethod("Number", "+", function(_this, that) { return _this + that } );
+  OO.declareMethod("Number", "-", function(_this, that) { return _this - that } );
+  OO.declareMethod("Number", "*", function(_this, that) { return _this * that } );
+  OO.declareMethod("Number", "/", function(_this, that) { return _this / that } );
+  OO.declareMethod("Number", "%", function(_this, that) { return _this % that } );
 }; 
 
 /*
@@ -210,10 +227,10 @@ send( OO.instantiate("Point", 1, 2), "+", OO.instantiate("Point", 3, 4) )
 
 OO.send = function( recv, selector  ) /*arg1,arg2,...*/
 {
-  var cls = OO.classOf(recv);
 
-  if( cls !== undefined )
+  if( typeof recv === "number" ) 
   {
+    var cls = OO.getClass("Number");
     var f   = cls[selector]; 
 
     if( f !== undefined )
@@ -229,8 +246,57 @@ OO.send = function( recv, selector  ) /*arg1,arg2,...*/
       }
       return f.apply(null, fArgs );
     }
-  } 
-  throw new Error("OO.send failed.");
+    else
+    {
+      var superSendArgs = ["Object"];
+      for( var i = 0 ; i < arguments.length; i++ )
+      {
+        var cur = arguments[i];
+        superSendArgs.push( cur );
+      }
+      return OO.superSend.apply(null, superSendArgs ); 
+    }
+
+    throw new Error("OO.send of Number failed.");   
+  }
+  else
+  {
+    var cls = OO.classOf(recv);
+
+    if( cls !== undefined )
+    {
+      var f   = cls[selector]; 
+
+      if( f !== undefined )
+      {
+        var fArgs = [recv];
+        if( arguments.length > 2 )
+        {
+          for( var i = 2 ; i < arguments.length; i++ )
+          {
+            var cur = arguments[i];
+            fArgs.push( cur );
+          }
+        }
+        return f.apply(null, fArgs );
+      }
+      else
+      {
+        if( cls.name !== "Object" )
+        {  
+          var superSendArgs = [cls.name];
+          for( var i = 0 ; i < arguments.length; i++ )
+          {
+            var cur = arguments[i];
+            superSendArgs.push( cur );
+          }
+          return OO.superSend.apply(null, superSendArgs ); 
+        }
+      }
+    }
+
+    throw new Error("OO.send failed.");
+  }
 };
 
 
@@ -260,6 +326,20 @@ OO.superSend = function( superClassName, recv, selector ) /*arg1,arg2... */
         }
       }
       return f.apply(null, fArgs ); 
+    }
+    else
+    {
+      if( superClassName !== "Object" )
+      {  
+        var sprSprClsName = OO.getSuperClassName( superClassName );
+        var superSendArgs = [sprSprClsName];
+        for( var i = 1 ; i < arguments.length; i++ )
+        {
+          var cur = arguments[i];
+          superSendArgs.push( cur );
+        }
+        return OO.superSend.apply(null, superSendArgs ); 
+      }
     }
   }
   throw new Error("OO.superSend failed."); 
