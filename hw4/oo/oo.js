@@ -1,3 +1,10 @@
+/*
+Tomer Weiss
+104272138
+*/
+
+
+
 var OO = {};
 /*
 initialize(), which does nothing.
@@ -231,20 +238,24 @@ OO.send = function( recv, selector  ) /*arg1,arg2,...*/
   if( typeof recv === "number" ) 
   {
     var cls = OO.getClass("Number");
-    var f   = cls[selector]; 
 
-    if( f !== undefined )
+    if( cls.hasOwnProperty(selector) )
     {
-      var fArgs = [recv];
-      if( arguments.length > 2 )
+      var f   = cls[selector]; 
+
+      if( f !== undefined )
       {
-        for( var i = 2 ; i < arguments.length; i++ )
+        var fArgs = [recv];
+        if( arguments.length > 2 )
         {
-          var cur = arguments[i];
-          fArgs.push( cur );
+          for( var i = 2 ; i < arguments.length; i++ )
+          {
+            var cur = arguments[i];
+            fArgs.push( cur );
+          }
         }
+        return f.apply(null, fArgs );
       }
-      return f.apply(null, fArgs );
     }
     else
     {
@@ -263,11 +274,11 @@ OO.send = function( recv, selector  ) /*arg1,arg2,...*/
   {
     var cls = OO.classOf(recv);
 
-    if( cls !== undefined )
+    if( cls !== undefined  )
     {
       var f   = cls[selector]; 
 
-      if( f !== undefined )
+      if( f !== undefined && cls.hasOwnProperty(selector) )
       {
         var fArgs = [recv];
         if( arguments.length > 2 )
@@ -314,7 +325,7 @@ OO.superSend = function( superClassName, recv, selector ) /*arg1,arg2... */
   if( cls !== undefined )
   {
     var f   = cls[selector]; 
-    if( f !== undefined )
+    if( f !== undefined && cls.hasOwnProperty(selector) )
     {
       var fArgs = [recv];
       if( arguments.length > 3 )
