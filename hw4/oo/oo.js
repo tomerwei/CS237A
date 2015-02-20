@@ -150,6 +150,20 @@ function isExactInstVarNum( argsLen, accInstVarsArrLen, className )
 };
 
 
+function getRecAllInstVarNum( className )
+{
+  if( className == "Object" )
+  {
+    return OO.getClassInstVarNames(className);
+  } 
+
+  var instVarsArr    = OO.getClassInstVarNames( className );
+  var sprClsName     = OO.getSuperClassName( className );
+  var sprClsInstVarsArr = getRecAllInstVarNum( sprClsName );
+
+  return sprClsInstVarsArr.concat( instVarsArr );
+};
+
 
 //OO.instantiate = function( className, arg1, arg2 ... )
 //OO.instantiate("Point", 1, 2)
@@ -167,9 +181,11 @@ OO.instantiate = function( className )
     var isExactInstVars = isExactInstVarNum( arguments.length - 1, 0, className);
     if( isExactInstVars )
     {
+      var allVarsArr = getRecAllInstVarNum( className );
+
       for ( var i = 1; i < arguments.length; i++ ) 
       {
-        var curVar  = instVarsArr[i-1];
+        var curVar  = allVarsArr[i-1];
         cls[curVar] = arguments[i];
       }
 
@@ -262,7 +278,7 @@ OO.getInstVar = function( recv, instVarName )
   if( cls !== undefined )
   {
 
-    var clsVarNamesArr = cls.instVarNames;
+    var clsVarNamesArr = getRecAllInstVarNum( cls.name );
     if( clsVarNamesArr.indexOf(instVarName) !== -1 )
     {
       return recv[instVarName];
