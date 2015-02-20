@@ -84,11 +84,12 @@ OO.declareClass = function ( name, superClassName, instVarNames ) {
       var chk = checkInstVarNames( superClassName, instVarNames );
       if( chk )
       {
-        var cls = {}
-        cls["name"]= name;
+        var cls      = {}
+        var clsTbl   = OO.classTable;
+        cls["name"]  = name;
         cls["super"] = superClassName;
         cls["instVarNames"]   = instVarNames;
-        classTable[name] = cls;
+        clsTbl[name] = cls;
       }
       else
       {
@@ -101,8 +102,10 @@ OO.declareClass = function ( name, superClassName, instVarNames ) {
       throw new Error("SuperClass " + superClassName + " not found.");
     }
   }
-  throw new Error("Class " + name + " already declared.");
-
+  else
+  {
+    throw new Error("Class " + name + " already declared.");
+  }
 };
 
 /*
@@ -132,17 +135,37 @@ OO.declareMethod = function(className, selector, implFn) {
 };
 
 
+function isExactInstVarNum( argsLen, accInstVarsArrLen, className )
+{
+  if( className == "Object" )
+  {
+    return argsLen === accInstVarsArrLen;
+  } 
+
+  var instVarsArr = OO.getClassInstVarNames( className );
+  var instVarArrLen = instVarsArr.length;
+  var sprClsName = OO.getSuperClassName( className );
+
+  return isExactInstVarNum( argsLen, accInstVarsArrLen + instVarArrLen, sprClsName );
+};
+
+
+
 //OO.instantiate = function( className, arg1, arg2 ... )
 //OO.instantiate("Point", 1, 2)
 OO.instantiate = function( className ) 
 {
-  var cls = OO.getClass( className );
+  var clsTemplate = OO.getClass( className );
 
-  if( cls != undefined )
+  if( clsTemplate != undefined )
   {
+    var cls = Object.create( clsTemplate );
+
     var instVarsArr = OO.getClassInstVarNames( className );
 
-    if( arguments.length - 1 === instVarsArr.length )
+    //if( arguments.length - 1 === instVarsArr.length )
+    var isExactInstVars = isExactInstVarNum( arguments.length - 1, 0, className);
+    if( isExactInstVars )
     {
       for ( var i = 1; i < arguments.length; i++ ) 
       {
@@ -236,10 +259,11 @@ E.g., OO.getInstVar(myPoint, "x")
 OO.getInstVar = function( recv, instVarName ) 
 {
   var cls = OO.classOf( recv );
-  if( recv !== undefined )
+  if( cls !== undefined )
   {
-    var clsVar = cls[instVarName];
-    if( clsVar !== undefined )
+
+    var clsVarNamesArr = cls.instVarNames;
+    if( clsVarNamesArr.indexOf(instVarName) !== -1 )
     {
       return recv[instVarName];
     }
@@ -256,10 +280,10 @@ E.g., OO.setInstVar(myPoint, "x", 5)
 OO.setInstVar = function( recv, instVarName, value ) 
 {
   var cls = OO.classOf( recv );
-  if( recv !== undefined )
+  if( cls !== undefined )
   {
-    var clsVar = cls[instVarName];
-    if( clsVar !== undefined )
+    var clsVarNamesArr = cls.instVarNames;
+    if( clsVarNamesArr.indexOf(instVarName) !== -1 )
     {
       recv[instVarName] = value;
     }
@@ -295,13 +319,13 @@ OO.getClassInstVarNames = function (className) {
 OO.classOf = function ( classInst ) {
   var clsName = classInst.name;
   var clsTbl  = OO.classTable;
-  return clsTbl.clsName;
+  return clsTbl[clsName];
 };
 
 OO.getSuperClassName = function( clsName )
 {
-  var cls = OO.getClass( className );
-  return clsName.super;
+  var cls = OO.getClass( clsName );
+  return cls.super;
 }
 
 
