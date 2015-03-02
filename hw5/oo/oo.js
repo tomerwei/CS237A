@@ -644,8 +644,7 @@ function programNode() {
   return res;
 };
 
-function sendExpr() {
-  //["send",// erecv, m, e1, e2, ...]
+function sendExpr() { //["send",// erecv, m, e1, e2, ...]
   var res = "";
   var sendArgs = [];
   var recv = ev( arguments[0] ) ;
@@ -657,14 +656,61 @@ function sendExpr() {
     var curArg = ev( arguments[i] );
     sendArgs.push( curArg );
   }
-
-
   res += "OO.send( " + ( sendArgs ) + " )"
   //  res += "OO.send.apply( null, " + JSON.stringify( sendArgs ) + " ) "
-  //res += OO.send.apply( null, sendArgs ).toString();
   return res;
 };
 
+
+function methodDecl() {
+  var res = "";
+  //OO.declareMethod("Object", "add", function(_this, x, y) { return x + y; });
+  var methodDeclArgs = [];
+  var methodClass    = arguments[0];
+  var methodName     = arguments[1];
+  var methodArgs     = arguments[2];
+  var methodReturn   = arguments[3];
+
+  methodDeclArgs.push( "\"" + methodClass  + "\"" );  //class
+  methodDeclArgs.push( "\"" + methodName  + "\"" );  //method
+
+  if( methodArgs.length === 0 )
+  {
+    methodArgs = "_this";
+  }
+  else
+  {
+    methodArgs = "_this, " + methodArgs;
+  }
+  methodDeclArgs.push( "function( " + methodArgs +  " )" + "{ " + ev( methodReturn ) + " } "  );
+  res += "OO.declareMethod( " + ( methodDeclArgs ) + "); " ;
+  return res;
+};
+
+
+function classDecl() {
+  //return OO.declareClass.apply(null,args); //["classDecl", "ThreeDeePoint", "Point", ["z"]]
+  //declareClass("Point", "Object", ["x", "y"])
+  var res = "";
+  var className  = arguments[0];
+  var classSuper = arguments[1];
+
+  var classArgs  = arguments[2];
+  var classArgsStrArr = [];
+  for( var i = 0 ; i < classArgs.length ; i++ )
+  {
+    classArgsStrArr.push( "\"" + classArgs[i] + "\"" );
+  }
+  var classArgsStr = "[" + classArgsStrArr.join(",") + "]";
+
+  var classDeclArgs = [];
+  classDeclArgs.push( "\"" + className +  "\"" );
+  classDeclArgs.push( "\"" + classSuper + "\"" );
+  classDeclArgs.push( classArgsStr );
+
+  res += "OO.declareClass( " + classDeclArgs + " )";
+  return res;
+};
 
 /*
 End Program elmentd
@@ -689,12 +735,12 @@ function ev(ast) {
       return programNode.apply( null, args );
     case "classDecl":
       //return OO.declareClass.apply(null,args); //["classDecl", "ThreeDeePoint", "Point", ["z"]]
-      //var restArgs = args.slice(4);
-      //return ev(restArgs);
-    case "methodDecl":
-      //return OO.declareMethod.apply(null,args);  //["methodDecl", "C", "m", ["a", "b", "c"], [...]]
-      //var restArgs = args.slice(5);
-      //return ev(restArgs);
+      //declareClass("Point", "Object", ["x", "y"])
+      return classDecl.apply(null,args);
+
+
+    case "methodDecl":                    //["methodDecl", "C", "m", ["a", "b", "c"], [...]]
+      return methodDecl.apply(null,args);
 
     //Statements
     case "varDecls":       //["varDecls", [x1, e1], [x2, e2] ... ] //var x1 = e1, x2 = e2, ...;
@@ -708,10 +754,10 @@ function ev(ast) {
 
     case "return":     //["return", e]
       var expr = ev( args[0] );
-      return "return " + expr + "";
+      return "return " + expr + "; ";
 
     case "setVar":     //["setVar", x, e]
-      return "" + args[0] + "= " + ev( args[1] ) + " "
+      return "" + args[0] + "= " + ev( args[1] ) + "; "
 
     case "setInstVar": //["setInstVar", x, e]
 
@@ -734,7 +780,21 @@ function ev(ast) {
 
       //OO.getInstVar = function( recv, instVarName )
 
-    case "new":       //["new", C, e1, e2, ...]
+    case "new":       //["new", C, e1, e2, ...]     //new C(e1, e2, ... )
+    //OO.instantiate("Point", 1, 2)
+    //TODO might need to change this to ev() of every arguement
+
+      var res = "";
+      res += "OO.instantiate( \"" + args[0] + "\""; 
+      if( arguments.lenght > 1 )
+      {
+        res+= ", " + args.slice(1) + " ) "; 
+      }
+      else
+      {
+        res+= " ) "; 
+      }
+      return res;
 
     case "send": //["send", erecv, m, e1, e2, ...]
       return sendExpr.apply(null,args);
