@@ -708,7 +708,35 @@ function classDecl() {
   classDeclArgs.push( "\"" + classSuper + "\"" );
   classDeclArgs.push( classArgsStr );
 
-  res += "OO.declareClass( " + classDeclArgs + " )";
+  res += "OO.declareClass( " + classDeclArgs + " ); ";
+  return res;
+};
+
+function newExpr() {
+  //["new", C, e1, e2, ...]     //new C(e1, e2, ... )
+  //OO.instantiate("Point", 1, 2)
+  var res = "";
+  var newExprArgs = [];
+  var className = arguments[0];
+  var classArgsArr = [];
+
+  newExprArgs.push("\"" + className +  "\"" );
+  for( var i = 1 ; i < arguments.length ; i++ )
+  {
+    var curArg = ev( arguments[i] ) ;
+    classArgsArr.push( curArg );
+  }
+
+  if( classArgsArr.length > 0 )
+  {
+    newExprArgs.push( classArgsArr.join(", ") );
+  }
+  else
+  {
+    //Do nothing
+  }
+  
+  res += "OO.instantiate(" + newExprArgs + ")"; 
   return res;
 };
 
@@ -748,7 +776,7 @@ function ev(ast) {
       for( var i = 0; i < args.length ; i++ )
       {
         var cur = args[i];
-        res+= "var " + cur[0] + " = " + ev( cur[1] ) +  " ;"
+        res+= "var " + cur[0] + " = " + ev( cur[1] ) +  " ;";
       }
       return res;
 
@@ -757,9 +785,10 @@ function ev(ast) {
       return "return " + expr + "; ";
 
     case "setVar":     //["setVar", x, e]
-      return "" + args[0] + "= " + ev( args[1] ) + "; "
+      return "" + args[0] + "= " + ev( args[1] ) + "; ";
 
     case "setInstVar": //["setInstVar", x, e]
+      return "this." + args[0] + " = " + ev( args[1] ) + ";";
 
     case "exprStmt":   //["exprStmt", e]
       var expr = ev( args[0] );
@@ -780,21 +809,8 @@ function ev(ast) {
 
       //OO.getInstVar = function( recv, instVarName )
 
-    case "new":       //["new", C, e1, e2, ...]     //new C(e1, e2, ... )
-    //OO.instantiate("Point", 1, 2)
-    //TODO might need to change this to ev() of every arguement
-
-      var res = "";
-      res += "OO.instantiate( \"" + args[0] + "\""; 
-      if( arguments.lenght > 1 )
-      {
-        res+= ", " + args.slice(1) + " ) "; 
-      }
-      else
-      {
-        res+= " ) "; 
-      }
-      return res;
+    case "new":       //["new", C, e1, e2, ...]    
+      return newExpr.apply(null,args);
 
     case "send": //["send", erecv, m, e1, e2, ...]
       return sendExpr.apply(null,args);
