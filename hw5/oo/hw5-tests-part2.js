@@ -57,6 +57,16 @@ tests(O,
           'def True.foo() = super.foo() + 41;\n' +
           'true.foo()',
     expected: 42
+  },
+  {
+    name: 'method decls + super send (3/3)',
+    code: 'class Point with x, y;\n' +
+    'def Point.initialize(x, y) { super.initialize(); this.x = x; this.y = y; }\n' +
+    'class ThreeDeePoint extends Point with z;\n' +
+    'def ThreeDeePoint.initialize(x, y, z) { super.initialize(x, y); this.z = z; }\n' +
+    'def ThreeDeePoint.m() = this.x * 100 + this.y * 10 + this.z;\n' +
+    'new ThreeDeePoint(1, 2, 3).m()',
+    expected: 123
   }
 );
 

@@ -460,9 +460,35 @@ OO.getClassInstVarNames = function (className) {
 
 //Returns the object that represents the class of the object x.
 OO.classOf = function ( classInst ) {
-  var clsName = classInst.name;
+  /*
   var clsTbl  = OO.classTable;
+  var clsName = classInst.name;
   return clsTbl[clsName];
+  */
+  
+  var clsTbl  = OO.classTable;
+  if( typeof classInst === "number" )
+  {
+    return clsTbl["Number"];
+  }
+  else if( classInst === null )
+  {
+    return clsTbl["Null"];  
+  }
+  else if( classInst === true )
+  {
+    return clsTbl["True"];
+  }
+  else if( classInst === false )
+  {
+    return clsTbl["False"];
+  }  
+  else
+  {
+    var clsName = classInst.name;
+    return clsTbl[clsName];
+  }
+  
 };
 
 OO.getSuperClassName = function( clsName )
@@ -644,22 +670,6 @@ function programNode() {
   return res;
 };
 
-function sendExpr() { //["send",// erecv, m, e1, e2, ...]
-  var res = "";
-  var sendArgs = [];
-  var recv = ev( arguments[0] ) ;
-  var selector = arguments[1];
-  sendArgs.push(recv);
-  sendArgs.push( "\"" + selector + "\"");
-  for( var i = 2; i < arguments.length ; i++ )
-  {
-    var curArg = ev( arguments[i] );
-    sendArgs.push( curArg );
-  }
-  res += "OO.send( " + ( sendArgs ) + " )"
-  //  res += "OO.send.apply( null, " + JSON.stringify( sendArgs ) + " ) "
-  return res;
-};
 
 
 function methodDecl() {
@@ -735,10 +745,54 @@ function newExpr() {
   {
     //Do nothing
   }
-  
+
   res += "OO.instantiate(" + newExprArgs + ")"; 
   return res;
 };
+
+
+function sendExpr() { //["send",// erecv, m, e1, e2, ...]
+  var res = "";
+  var sendArgs = [];
+  var recv = ev( arguments[0] ) ;
+  var selector = arguments[1];
+  sendArgs.push(recv);
+  sendArgs.push( "\"" + selector + "\"");
+  for( var i = 2; i < arguments.length ; i++ )
+  {
+    var curArg = ev( arguments[i] );
+    sendArgs.push( curArg );
+  }
+  res += "OO.send( " + ( sendArgs ) + " )"
+  //  res += "OO.send.apply( null, " + JSON.stringify( sendArgs ) + " ) "
+  return res;
+};
+
+function superSendExpr() { 
+//OO.send(OO.superSend(OO.classOf(_this).superClassName, _this, "foo"), "+", 41);
+//OO.send(OO.send(, "foo"), "+", 41);
+//[ m, e1, e2, ...]  super.m(e1, e2, ...)
+//superSend(superClassName, recv, selector, arg1, arg2, ...)
+//implement superSend as send
+  var res = "";
+  var superSendArgs = [];
+  var selector = arguments[0];  
+  var superClassName = "OO.classOf(_this).super";
+  var recv = "_this";
+
+  superSendArgs.push(superClassName); //superSendArgs.push(recv);
+  superSendArgs.push(recv); 
+  superSendArgs.push( "\"" + selector + "\"");
+  for( var i = 1; i < arguments.length ; i++ )
+  {
+    var curArg = ev( arguments[i] );
+    superSendArgs.push( curArg );
+  }
+  res += "OO.superSend( " + ( superSendArgs ) + " )"
+
+  return res;
+};
+
 
 /*
 End Program elmentd
@@ -788,7 +842,7 @@ function ev(ast) {
       return "" + args[0] + "= " + ev( args[1] ) + "; ";
 
     case "setInstVar": //["setInstVar", x, e]
-      return "this." + args[0] + " = " + ev( args[1] ) + ";";
+      return "_this." + args[0] + " = " + ev( args[1] ) + ";";
 
     case "exprStmt":   //["exprStmt", e]
       var expr = ev( args[0] );
@@ -805,8 +859,8 @@ function ev(ast) {
     case "getVar":    //["getVar", x]
       return "" + args[0]  ;
 
-    case "getInstVar": //["getInstVar", x]
-
+    case "getInstVar": //["getInstVar", x] //this.x
+      return "_this." + args[0];  
       //OO.getInstVar = function( recv, instVarName )
 
     case "new":       //["new", C, e1, e2, ...]    
@@ -815,8 +869,8 @@ function ev(ast) {
     case "send": //["send", erecv, m, e1, e2, ...]
       return sendExpr.apply(null,args);
 
-    case "superSend": //["superSend", m, e1, e2, ...]
-
+    case "super": //["superSend", m, e1, e2, ...]  super.m(e1, e2, ...)
+      return superSendExpr.apply(null,args);
   } 
   
 };
