@@ -105,6 +105,7 @@ function checkInstVarNames ( superClassName, instVarNamesArr )
 };
 
 
+
 OO.declareClass = function ( name, superClassName, instVarNames ) {
   if( OO.getClass(name) === undefined  )
   {
@@ -224,6 +225,45 @@ OO.instantiate = function( className )
   }
 
   throw new Error("Cannot instantiate class.");
+};
+
+block_idx = 0;
+
+OO.instantiateBlock = function( blockArgs, blockBody )
+{
+//blockBody = [s1,s2,s3]
+  var blockMethod = [];
+  var blockClsName = "Block_" + block_idx;
+  var blockBodyWithReturn = [];
+
+
+  block_idx=block_idx+1;
+  OO.declareClass( blockClsName, "Object", [] );
+
+  for( var i = 0; i < blockBody.length ; i++ )
+  {
+    if( i === blockBody.length - 1 )
+    {
+      blockBodyWithReturn.push( ["return", blockBody[i] ]);
+    }
+    else
+    {
+      blockBodyWithReturn.push( blockBody[i] );
+    }
+  }
+
+  blockMethod.push( "methodDecl" );
+  blockMethod.push( blockClsName );
+  blockMethod.push( "call" );
+  blockMethod.push( blockArgs );
+  blockMethod.push( blockBodyWithReturn );
+  //["methodDecl", "Block", "blockMethod", ["x1", "x2", "x3"], [...]]  
+  var methodDeclStr =  ev( blockMethod );
+  console.log(methodDeclStr);
+  eval(methodDeclStr);
+  //OO.declareMethod(blockClsName, "call", function(_this, that) {return _this >= that } );
+
+  return OO.instantiate( blockClsName );
 };
 
 
@@ -460,13 +500,7 @@ OO.getClassInstVarNames = function (className) {
 
 //Returns the object that represents the class of the object x.
 OO.classOf = function ( classInst ) {
-  /*
-  var clsTbl  = OO.classTable;
-  var clsName = classInst.name;
-  return clsTbl[clsName];
-  */
-  
-  var clsTbl  = OO.classTable;
+    var clsTbl  = OO.classTable;
   if( typeof classInst === "number" )
   {
     return clsTbl["Number"];
@@ -752,6 +786,21 @@ function newExpr() {
 
 
 function sendExpr() { //["send",// erecv, m, e1, e2, ...]
+//["send", ["getVar", "tb"], "call"]
+//add.call( null, 1, 2 )
+/*
+ ["send",
+                 ["block",
+                   ["x", "y"],
+                   [["exprStmt", ["send",
+                                   ["getVar", "x"],
+                                   "*",
+                                   ["getVar", "y"]]]]],
+                 "call",
+                 ["number", 6],
+                 ["number", 7]]
+*/
+//if there is call in send, "eat" till the end 
   var res = "";
   var sendArgs = [];
   var recv = ev( arguments[0] ) ;
@@ -797,8 +846,6 @@ function superSendExpr() {
 /*
 End Program elmentd
 */
-
-
 
 
 function ev(ast) {
@@ -871,6 +918,25 @@ function ev(ast) {
 
     case "super": //["superSend", m, e1, e2, ...]  super.m(e1, e2, ...)
       return superSendExpr.apply(null,args);
+
+    case "this":
+      return "OO.classOf(_this)";
+
+
+    //Blocks
+    case "block":
+    //{ x1, x2, ... | s1 s2 ... }
+    //["block", [x1, x2, ...], [s1, s2, ...]]
+      var res = "";
+      var blockArgs = args[0];
+      var blockBody = args[1];
+      var blockArgsStr = JSON.stringify( blockArgs );
+      var blockBodyStr = JSON.stringify( blockBody );
+      res += "OO.instantiateBlock(" + blockArgsStr + ", " + blockBodyStr + ")"; 
+      return res;
+
+    default:
+      throw new Error("Unsupported AST node " + tag );
   } 
   
 };
