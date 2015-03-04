@@ -469,6 +469,7 @@ OO.setInstVar = function( recv, instVarName, value )
     if( clsVarNamesArr.indexOf(instVarName) !== -1 )
     {
       recv[instVarName] = value;
+      return value;
     }
   }
   throw new Error("OO.getInstVar failed.");
