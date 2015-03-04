@@ -50,6 +50,16 @@ OO.initializeCT = function()
   OO.declareClass("True", "Boolean", [] );
   OO.declareClass("False", "Boolean", [] );
 
+  OO.declareClass("Block","Object",["body"]);
+  OO.declareMethod("Block", 
+                    "call", 
+                    function(_this) { 
+                      console.log( arguments );
+                      var args = Array.prototype.slice.call(arguments, 1); 
+                      var blkCls = OO.getClass("Block");
+                      var b = OO.getInstVar(_this,"body");
+                      return b.apply( null, args );
+                    } );  
 };
 
 /*
@@ -229,6 +239,7 @@ OO.instantiate = function( className )
 
 block_idx = 0;
 
+/*
 OO.instantiateBlock = function( blockArgs, blockBody )
 {
 //blockBody = [s1,s2,s3]
@@ -265,6 +276,7 @@ OO.instantiateBlock = function( blockArgs, blockBody )
 
   return OO.instantiate( blockClsName );
 };
+*/
 
 
 
@@ -931,10 +943,24 @@ function ev(ast) {
       var res = "";
       var blockArgs = args[0];
       var blockBody = args[1];
-      var blockArgsStr = JSON.stringify( blockArgs );
-      var blockBodyStr = JSON.stringify( blockBody );
-      res += "OO.instantiateBlock(" + blockArgsStr + ", " + blockBodyStr + ")"; 
-      return res;
+      var blockArgsStr = blockArgs;
+      var blockBodyWithReturn = [];
+
+      for( var i = 0; i < blockBody.length ; i++ )
+      {
+        if( i === blockBody.length - 1 && blockBody[i][0] !== "return" )
+        {
+          blockBodyWithReturn.push( ["return", blockBody[i] ]);
+        }
+        else
+        {
+          blockBodyWithReturn.push( blockBody[i] );
+        }
+      }
+
+      var blockBodyStr = ev( blockBodyWithReturn );
+      var blockFunction = "function(" + blockArgsStr +  ") {" + blockBodyStr +  "}" ;
+      return  "OO.instantiate(\"Block\"," + blockFunction + ")" ; 
 
     default:
       throw new Error("Unsupported AST node " + tag );
