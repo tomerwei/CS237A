@@ -242,7 +242,7 @@ OO.instantiateBlock = function( blockArgs, blockBody )
 
   for( var i = 0; i < blockBody.length ; i++ )
   {
-    if( i === blockBody.length - 1 )
+    if( i === blockBody.length - 1 && blockBody[i][0] !== "return" )
     {
       blockBodyWithReturn.push( ["return", blockBody[i] ]);
     }
