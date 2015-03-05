@@ -686,6 +686,12 @@ function matchValues( patValue, exprValue,bindings )
 };
 
 
+//NLR(nlrId, OO.send(v_x, "+", v_y));
+function NLR(id,value) {
+   this.id = id;
+   this.value = value;
+}
+
 
 // ...
 O.transAST = function(ast) {
@@ -701,6 +707,7 @@ Program elements
 
 function programNode() {
   var res = "OO.initializeCT(); ";
+  res+= "var nextNlrId = 0;";
   for( var i = 0; i < arguments.length ; i++ )
   {
     var cur = arguments[i];
@@ -739,7 +746,37 @@ function methodDecl() {
   {
     methodArgs = "_this, " + methodArgs;
   }
-  methodDeclArgs.push( "function( " + methodArgs +  " )" + "{ " + ev( methodReturn ) + " } "  );
+
+  //user specified methods always return null if nothing else
+  var methodReturnWithNull = [];
+  if( methodReturn.length === 0 )
+  {
+    methodReturnWithNull.push( ["return", ["null"] ]);
+  }
+  else
+  {
+    for( var i = 0; i < methodReturn.length ; i++ )
+    {
+      methodReturnWithNull.push( methodReturn[i] );
+      if( i === methodReturn.length - 1 && methodReturn[i][0] !== "return" )
+      {
+        methodReturnWithNull.push( ["return", ["null"] ]);
+      }
+    }    
+  }
+
+
+  var methodReturnStr = "";
+
+  for( var i = 0 ; i < methodReturnWithNull.length ; i ++ )
+  {
+    methodReturnStr+= ev( methodReturnWithNull[i] );
+  }
+
+  var tryCatch = "try { " + methodReturnStr + "} catch(e) { if (e instanceof NLR && e.id === nlrId) { return e.value; } else throw e; } return _this; ";
+   
+  var methodReturnStrWithThrow = "var nlrId = nextNlrId++;" + tryCatch ;
+  methodDeclArgs.push( "function( " + methodArgs +  " )" + "{ " + methodReturnStrWithThrow + " } "  );
   res += "OO.declareMethod( " + ( methodDeclArgs ) + "); " ;
   return res;
 };
@@ -798,7 +835,8 @@ function newExpr() {
 };
 
 
-function sendExpr() { //["send",// erecv, m, e1, e2, ...]
+function sendExpr() { 
+//["send",// erecv, m, e1, e2, ...]
 //["send", ["getVar", "tb"], "call"]
 //add.call( null, 1, 2 )
 /*
@@ -863,9 +901,15 @@ End Program elmentd
 
 function ev(ast) {
 
+  if( ast instanceof Array && ast.length === 0 )
+  {
+    return ""; //TODO check
+  }
+
   var tag = ast[0];
   if( tag instanceof Array )
   {
+
     return ev( ast[0] );
   }
   var args = ast.slice(1);
@@ -896,17 +940,22 @@ function ev(ast) {
 
     case "return":     //["return", e]
       var expr = ev( args[0] );
-      return "return " + expr + "; ";
+      if( expr[expr.length - 1] === ";" )
+      {
+        expr = expr.substring(0, expr.length -1 );
+      }
+      return "throw new NLR(nlrId," + expr +  ");";
+
 
     case "setVar":     //["setVar", x, e]
-      return "" + args[0] + "= " + ev( args[1] ) + "; ";
+      return "" + args[0] + "= " + ev( args[1] ) + ";";
 
     case "setInstVar": //["setInstVar", x, e]
       return "_this." + args[0] + " = " + ev( args[1] ) + ";";
 
     case "exprStmt":   //["exprStmt", e]
       var expr = ev( args[0] );
-      return expr + " ";
+      return expr + ";";
 
     //Expressions
     case "null":      //["null"]
@@ -933,7 +982,7 @@ function ev(ast) {
       return superSendExpr.apply(null,args);
 
     case "this":
-      return "OO.classOf(_this)";
+      return "_this";
 
 
     //Blocks
@@ -946,20 +995,51 @@ function ev(ast) {
       var blockArgsStr = blockArgs;
       var blockBodyWithReturn = [];
 
+      var lastExprPos = -1;
+      var firstReturnPos = -1;
       for( var i = 0; i < blockBody.length ; i++ )
       {
-        if( i === blockBody.length - 1 && blockBody[i][0] !== "return" )
+        if( blockBody[i][0] === "exprStmt" )
         {
-          blockBodyWithReturn.push( ["return", blockBody[i] ]);
+          lastExprPos = i;
         }
-        else
+
+        if( firstReturnPos === -1 && blockBody[i][0] === "return" )
+        {
+          firstReturnPos = i;
+        }
+      }
+
+      for( var i = 0; i < blockBody.length ; i++ )
+      {
+        if( i !== lastExprPos )
         {
           blockBodyWithReturn.push( blockBody[i] );
         }
       }
 
-      var blockBodyStr = ev( blockBodyWithReturn );
-      var blockFunction = "function(" + blockArgsStr +  ") {" + blockBodyStr +  "}" ;
+      if( firstReturnPos === -1 && lastExprPos !== -1 )
+      {
+        blockBodyWithReturn.push( ["return", blockBody[lastExprPos] ]);
+      }
+      else if( firstReturnPos === -1 )
+      {
+        blockBodyWithReturn.push( ["return", ["null"] ] );
+      }
+
+      var methodReturnStr = "";
+      for( var i = 0 ; i < blockBodyWithReturn.length ; i ++ )
+      {
+        methodReturnStr+= ev( blockBodyWithReturn[i] );
+      }
+
+
+      var tryCatch = "try { " + methodReturnStr + "} catch(e) { if (e instanceof NLR && e.id === nlrId) { return e.value; } else throw e; } ";
+      //else throw e; } return null;"; might need to change
+       
+      var methodReturnStrWithThrow = "var nlrId = nextNlrId++;" + tryCatch ;
+
+      var blockFunction = "function(" + blockArgsStr +  ") {" + methodReturnStrWithThrow +  "}" ;
       return  "OO.instantiate(\"Block\"," + blockFunction + ")" ; 
 
     default:
