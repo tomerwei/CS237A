@@ -3,10 +3,36 @@ Name: Tomer Weiss
 UID:  104272138
 */
 
+
+/*
+As Alex mentioned in class recently, the graduate students enrolled in CS237A have one extra 
+course requirement.  Specifically, each of you must complete at least one of the extra-credit 
+suggestions for at least one of the homework assignments.  When you complete it, post it on 
+Piazza as a private note to the instructors.  Include a brief description of your design, 
+give instructions to run the code, and provide a set of unit tests that illustrate the behavior.
+
+Brief description: Lazy evalutaion of homework no.1 
+Cons -- will continue to evaluate a list till there is a variable, in that case we add a thunk
+via delay.
+
+Id
+
+match
+
+if else then
+
+Short-cirtcuit && ||
+
+
+*/
+
 F.evalAST = function(ast) {
   var env = new Object();
   return ev(ast, env);
 };
+
+
+
 
 /*
 function arrToCons( l )
@@ -82,8 +108,20 @@ function thunk(ast,env)
 {
   //doens't evaluate function, just returns closure
   //return ev(["fun", [] , ast], env ); 
+  if( isPrimeValue(ast) )
+  {
+    return ast;
+  }
+  else if( ast instanceof Array && ast[0] === 'cons' && isPrimeValue( ast[1] ) )
+  {
+    var tl = ev( ast[2], env );
+    return ['cons',ast[1],tl];
+  }
+
   return [ 'delay', ast, Object.create( env ) ]; 
 };
+
+
 
 function NLR(id) {
    this.id = id;
@@ -222,7 +260,7 @@ function ev(ast,env) {
                 else
                 {
                   //ev( expr[1], expr[2] ); do nothing?
-                }
+                }7
                 //return ev( ['force',res],env );
               }
               
@@ -381,7 +419,7 @@ function ev(ast,env) {
           }
         }
         else
-          throw new NLR(args[0]); //Variable not in enviornment 
+          throw new NLR(args[0]); //Variable not in enviornment, see lazy evaluation
       case "fun":
         var funcEnv = Object.create( env );
         return ['closure', args[0] , args[1] , funcEnv ];
