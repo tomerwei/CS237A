@@ -76,3 +76,9 @@ F.eval = function(str) {
   return this.evalAST(ast);
 };
 
+F.infer = function(str) {
+  var ast = this.fromString(str);
+  return this.inferType(ast);
+};
+
+

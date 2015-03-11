@@ -8,13 +8,12 @@ F.evalAST = function(ast) {
   return ev(ast, env);
 };
 
-/*
 function arrToCons( l )
 {
   var res = null;
   for( i = l.length - 1 ; i >= 0 ; i-- )
   {
-    res = ['cons', l[i], thunk(res) ];
+    res = ['cons', l[i], res ];
 
   }
   return res;
@@ -32,10 +31,7 @@ function consToArr( acc , l )
     return acc;
   }
 };
-*/
 
-//['match', exprValue, p1, e1, curPattern, e2, ... ]
-//function matchValues( patValue, exprValue , env )
 function matchValues( patValue, exprValue , env )
 {
   if( isPrimeValue( patValue ) && isPrimeValue( exprValue ) && patValue === exprValue )
@@ -77,18 +73,6 @@ function matchValues( patValue, exprValue , env )
   return [false,env];
 };
 
-
-function thunk(ast,env)
-{
-  //doens't evaluate function, just returns closure
-  return ev(["fun", [] , ast], env ); 
-};
-
-function NLR(id) {
-   this.id = id;
-};
-
-
 function ev(ast,env) {
   if ( typeof ast === "number" || ast === true ||
       ast === false  || ast ===  null )
@@ -127,9 +111,8 @@ function ev(ast,env) {
       
       case "cons":
         var x = ev(args[0],env);
-        //var xs = ev(args[1],env);
-        var xs = thunk( args[1], env ); //added lazy cons
-        return ['cons',x, xs];
+        var xs = ev(args[1],env);
+        return ['cons',x,xs];
 
       case "set":
         if ( args[0] in env ) 
@@ -146,8 +129,6 @@ function ev(ast,env) {
         return ev(args[1], env );
 
       case "listComp":
-        throw new Error("listComp Unsupported.");      
-      /*
         var expr  = args[0];
         var xVar  = args[1];
         var eList = args[2];
@@ -181,11 +162,10 @@ function ev(ast,env) {
           }
 
         }
+
         return arrToCons( res );
-      */
 
       case "match":
-      //match is lazy by def.
       //['match', e, p1, e1, p2, e2, ... ]
         var matchExpr = ev(args[0],env);
         for( i = 1 ; i < args.length; i=i+2 )
@@ -200,8 +180,6 @@ function ev(ast,env) {
           }
           else
           {
-            //['match', exprValue, p1, e1, curPattern, e2, ... ]
-            //function matchValues( patValue, exprValue , env )
             var matchRes = matchValues( curPattern, matchExpr, env );
             if( matchRes[0] )
             {
@@ -275,38 +253,20 @@ function ev(ast,env) {
       case "!=":
         return ev(args[0],env) !== ev(args[1],env);
       case "or":
-        //adding lazy evaluation to or
         var lhs = ev(args[0],env);
-        if( isBool(lhs) && lhs )
-        {
-          return true;
-        }
+        var rhs = ev(args[1],env);
+        if( isBool(lhs) && isBool( rhs) )
+          return lhs || rhs;
         else
-        {
-          if( !isBool(lhs ) )
-            throw( "Lhs not boolean.");
-          var rhs = ev(args[1],env);
-          if( !isBool(rhs) )
-            throw( "Rhs not boolean.");
-          return rhs;
-        }
+          throw new Error("Not boolean");
 
       case "and":
-        //adding lazy evaluation to and
         var lhs = ev(args[0],env);
-        if( isBool(lhs) && lhs )
-        {
-          var rhs = ev(args[1],env);
-          if( !isBool(rhs) )
-            throw( "Rhs not boolean.");
-          return rhs;
-        }
+        var rhs = ev(args[1],env);
+        if( isBool(lhs) && isBool( rhs) )
+          return lhs && rhs;
         else
-        {
-          if( !isBool(lhs ) )
-            throw( "Lhs not boolean.");
-          return false;
-        }
+          throw new Error("Not boolean");
 
       case "if":
         var boolCond = ev(args[0],env);
@@ -323,32 +283,15 @@ function ev(ast,env) {
         }
 
       case "let":
-      //lazy evaluation of let x = e1 in e2 
-        var originalEnv = Object.create( env );
-        try
-        {
-          var e2 = ev( args[2] ,env);
-          console.log( "No need to evaluate " + args[1] )
-          return e2;
-        }
-        catch(e)
-        {
-          if (e instanceof NLR ) 
-          { 
-            env = originalEnv;
-            var e1 = ev( args[1], env )
-            env[ args[0] ] = e1;
-            var e2 = ev( args[2] ,env);
-            return e2;
-          } 
-          else throw e; 
-        }
+        var rhs = ev( args[1], env )
+        env[ args[0] ] = rhs;
+        return ev( args[2] ,env);
 
       case "id":
         if ( args[0] in env ) 
           return env[ args[0] ];
         else
-          throw new NLR(args[0]); //Variable not in enviornment 
+          throw new Error("Referenced variable not bound in enviornment "); 
       case "fun":
         var funcEnv = Object.create( env );
         return ['closure', args[0] , args[1] , funcEnv ];
