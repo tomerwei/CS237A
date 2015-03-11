@@ -81,7 +81,8 @@ function matchValues( patValue, exprValue , env )
 function thunk(ast,env)
 {
   //doens't evaluate function, just returns closure
-  return ev(["fun", [] , ast], env ); 
+  //return ev(["fun", [] , ast], env ); 
+  return [ 'delay', ast, Object.create( env ) ]; 
 };
 
 function NLR(id) {
@@ -206,7 +207,27 @@ function ev(ast,env) {
             if( matchRes[0] )
             {
               var matchEnv = Object.create( matchRes[1] );
-              return ev( curExpr, matchEnv );
+              var res = ev( curExpr, matchEnv );
+
+
+              if( res instanceof Array && res[0] === 'cons' )
+              {
+                var hd = res[1];
+                var tl = res[2];
+                if( tl instanceof Array && tl[0] === 'delay' )
+                {
+                  var consTail = ev( tl[1], tl[2] ); //tl[2] is an env
+                  return ['cons',hd,consTail];
+                }
+                else
+                {
+                  //ev( expr[1], expr[2] ); do nothing?
+                }
+                //return ev( ['force',res],env );
+              }
+              
+
+              return res;
             }
           }
 
@@ -346,7 +367,19 @@ function ev(ast,env) {
 
       case "id":
         if ( args[0] in env ) 
-          return env[ args[0] ];
+        {
+          var variable = env[ args[0] ];
+          if( variable instanceof Array && variable[0] === 'delay' )
+          {
+            var res = ev( variable[1], variable[2] ); //tl[2] is an env
+            env[ args[0] ] = res;
+            return res;
+          }
+          else
+          {
+            return variable;
+          }
+        }
         else
           throw new NLR(args[0]); //Variable not in enviornment 
       case "fun":
