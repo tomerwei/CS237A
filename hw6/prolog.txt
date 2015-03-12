@@ -1,0 +1,28 @@
+Unification:
+
+given two terms t1 and t2, find a *substitution* s mapping variables
+to terms such that s(t1) is syntactically the same as s(t2)
+
+the substitution s is in *solved form*:
+ - any variable in the domain of s does not appear in the range of s
+
+ pseudocode:
+
+ c = c --> {}
+
+ X = X --> {}
+
+ X = t --> {X : t}
+
+ t = X --> {X : t}
+
+ // simplicity: assuming a binary relation
+ c(t1,t2) = c(t1', t2')
+     t1=t1' --> s
+     s(t2) = s(t2') --> s'
+     return s U s'
+
+otherwise
+   throw Exception("no")
+   
+**note: make sure the result is in solved form
