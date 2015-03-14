@@ -157,14 +157,6 @@ Subst.prototype.unify = function(term1, term2) {
 			}
 			return res;
 		}
-		/*
-    name: 'unify(Clause, Clause) (3/5)',
-    code: 'new Subst().unify(new Clause("foo", [new Var("X")]),\n' +
-          '                  new Clause("foo", [new Clause("bar", [new Clause("baz")])]));',
-    expected: new Subst().bind("X", new Clause("bar", [new Clause("baz")]))
-			*/
-		
-		//other will throw error
 	}
 
 	else if( term1 instanceof Var && term2 instanceof Clause )
@@ -176,16 +168,129 @@ Subst.prototype.unify = function(term1, term2) {
 		return new Subst().bind(term2.name,term1);	
 	}
 	
-	//return new Subst().bind("X", new Clause("foo"));
-	throw new Error("unification failed")
-  	//throw new TODO("Subst.prototype.unify not implemented");
+	throw new Error("unification failed");
 };
 
 // -----------------------------------------------------------------------------
 // Part III: Program.prototype.solve()
 // -----------------------------------------------------------------------------
 
-Program.prototype.solve = function() {
-  throw new TODO("Program.prototype.solve not implemented");
+
+
+function shiftWithoutMutation(arr)
+{
+	var res = [];
+	for( var i = 1; i < arr.length ; i++ )
+	{
+		res.push( arr[i]);
+	}	
+	return res;
+};
+
+
+
+Program.prototype.solve = function() 
+{
+	var rules = this.rules;
+	var query = this.query;
+
+	if( rules.length === 0 )
+	{
+		return [];
+	}
+	else if( query.length === 0 )
+	{
+		return [new Subst()];
+	}
+	else
+	{
+		var q = query[0];
+		var r = rules[0].makeCopyWithFreshVarNames();
+		var res = [];
+
+		try
+		{
+			var curSubst = new Subst().unify( r.head , q ); 
+			res.push(curSubst.bindings);
+
+			var nextRules = shiftWithoutMutation( rules );
+			var tailRes = new Program( nextRules, query ).solve();
+
+			for( var i = 0 ; i < tailRes ; i++ )
+			{
+				res.push( tailRes[i] );
+			}
+
+			return makeIterator.apply( null, res );
+
+		}
+		catch(e)
+		{
+			//unification failed, continue
+		}
+		
+		/*
+		return makeIterator( curSubst, new Program.solve( nextRules, nextQuery ));
+		var nextQuery = query.shift();
+		return makeIterator( new Program.solve( nextRules, nextQuery ));
+		*/
+	}
+};
+
+
+
+
+Program.prototype.solve2 = function() {
+	//maybe recursive solution
+	var rules = this.rules;
+	var query = this.query;
+	var res = {};
+
+	for( var j = 0; j < query.length ; j++ )
+	{
+		//query is a list of clauses
+		//find all the clauses the fulfill query[i]
+		//then from these, continue an narrow down
+		//to queries that fulfill query[i+1]
+		/*
+		sick(joe).
+		sick(frank).
+		sick(eddie).
+		tired(joe).
+		tired(eddie).
+		sick(X), tired(X)?
+		*/
+
+		var q = query[j];
+		var nextRules = [];
+		//var res = new Subst();
+		for( var i = 0 ; i < rules.length ; i++ )
+		{
+			var rule = rules[i].makeCopyWithFreshVarNames();
+			var curSubst = new Subst().unify( rule.head , q );
+
+			//if we managed to unify -- add clause to new set of rules
+			for( var j in curSubst.bindings )
+			{
+			  var cur = curSubst.bindings[j];
+			  nextRules.push( cur );
+			}
+		//new Sulbst().unify(new Clause("foo", [new Var("X"), new Clause("baz")]),
+        //      new Clause("foo", [new Clause("bar"), new Var("Y")]));
+		}
+
+		//console.log( res );
+		rules = nextRules;
+	}
+
+	console.log( nextRules );
+/*
+makeIterator(
+      { X: new Clause("joe") },
+      { X: new Clause("eddie") }
+    )
+*/
+	return makeIterator({});
+  	//throw new TODO("Program.prototype.solve not implemented");
 };
 
