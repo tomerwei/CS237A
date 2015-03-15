@@ -12,16 +12,22 @@ Piazza as a private note to the instructors.  Include a brief description of you
 give instructions to run the code, and provide a set of unit tests that illustrate the behavior.
 
 Brief description: Lazy evalutaion of homework no.1 
+This implementation allows processing of infinite steams without declaring 'force' or 
+'delay'. 'force' and 'delay' are added under the covers in cons, as described bellow.
+
 Cons -- will continue to evaluate a list till there is a variable, in that case we add a thunk
-via delay.
+via delay. We add a thunk only if there one of the cons members is not a primValue.
+If there is a variable or not primValue node in the cons, we add a 'delay', to delay the 
+computation.
 
-Id
+Id,let e1 in e2: we try to evaluate e2 without evaluating e1. If that doesn't work,
+we throw and exception, and then we evaluate e1, set the variables that are missing,
+and then evaluate e2
 
-match
 
-if else then
+if cond else then -- evaluate only the relevant branch that fulfills the cond.
 
-Short-cirtcuit && ||
+Short-cirtcuiting of logical expression: && ||
 
 
 */
@@ -34,13 +40,13 @@ F.evalAST = function(ast) {
 
 
 
-/*
+
 function arrToCons( l )
 {
   var res = null;
   for( i = l.length - 1 ; i >= 0 ; i-- )
   {
-    res = ['cons', l[i], thunk(res) ];
+    res = ['cons', l[i], res ];
 
   }
   return res;
@@ -58,7 +64,7 @@ function consToArr( acc , l )
     return acc;
   }
 };
-*/
+
 
 //['match', exprValue, p1, e1, curPattern, e2, ... ]
 //function matchValues( patValue, exprValue , env )
@@ -81,7 +87,7 @@ function matchValues( patValue, exprValue , env )
   else if( (patValue instanceof Array && patValue[0] === 'cons') &&  
            (exprValue instanceof Array && exprValue[0] === 'cons') )
   {
-    var x  = patValue[1];
+    var x  = patValue[1];//
     var xs = patValue[2]; 
     var y  = exprValue[1];
     var ys = exprValue[2]; 
@@ -104,11 +110,32 @@ function matchValues( patValue, exprValue , env )
 };
 
 
+function checkCons(ast,env)
+{
+  if( isPrimeValue(ast) )
+  {
+    return true;
+  }  
+  else if( ast instanceof Array && ast[0] === 'cons' )
+  {
+  //["cons", 1, ["cons", ["cons", 2, 3], ["cons", 4, null]]],
+    var hd = checkCons( ast[1] );
+    var tl = checkCons( ast[2] );
+
+    return hd && tl;
+  }
+  else
+  {
+    return false;
+  }
+};
+
+
 function thunk(ast,env)
 {
   //doens't evaluate function, just returns closure
   //return ev(["fun", [] , ast], env ); 
-  if( isPrimeValue(ast) )
+  if( isPrimeValue(ast) || checkCons(ast) )
   {
     return ast;
   }
@@ -185,8 +212,8 @@ function ev(ast,env) {
         return ev(args[1], env );
 
       case "listComp":
-        throw new Error("listComp Unsupported.");      
-      /*
+        //throw new Error("listComp Unsupported.");      
+      
         var expr  = args[0];
         var xVar  = args[1];
         var eList = args[2];
@@ -221,12 +248,14 @@ function ev(ast,env) {
 
         }
         return arrToCons( res );
-      */
+      
 
       case "match":
       //match is lazy by def.
       //['match', e, p1, e1, p2, e2, ... ]
+
         var matchExpr = ev(args[0],env);
+
         for( i = 1 ; i < args.length; i=i+2 )
         {
           var curPattern = args[i]
