@@ -187,110 +187,104 @@ function shiftWithoutMutation(arr)
 	return res;
 };
 
+/*
+This will require you to maintain some state to represent the current point in your search, 
+so that a call to next() can pick up where the previous call left off, including accounting 
+for the need to backtrack. Hint: Aren't lexically scoped closures awesome?
+*/
+//idea: use external variable res to keep track of position, next solution
+
+
+/*
+Let's write CPS manually
+It is forbidden to use return explicitely
+The last parameter of a function is always its continuation
+Every function must end calling its continuation with the result of its computation
+
+function callcc (f,cc) { 
+  f(function(x,k) { cc(x) },cc)
+}
+
+
+*/
 
 
 Program.prototype.solve = function() 
 {
-	var rules = this.rules;
-	var query = this.query;
 
-	if( rules.length === 0 )
-	{
-		return [];
-	}
-	else if( query.length === 0 )
-	{
-		return [new Subst()];
-	}
-	else
-	{
-		var q = query[0];
-		var r = rules[0].makeCopyWithFreshVarNames();
-		var res = [];
+	var result = [];
+	var stateRule = 0;
+	var stateQuery = 0;
 
-		try
+	function solveContinuation( program ,ret) {
+		var rules = program.rules;
+		var query = program.query;
+
+		if( query.length <= stateQuery )
 		{
-			var curSubst = new Subst().unify( r.head , q ); 
-			res.push(curSubst.bindings);
-
-			var nextRules = shiftWithoutMutation( rules );
-			var tailRes = new Program( nextRules, query ).solve();
-
-			for( var i = 0 ; i < tailRes ; i++ )
+			ret( new Subst() );
+		}
+		else
+		{
+			if( rules.length <= stateRule  )
 			{
-				res.push( tailRes[i] );
+				ret(  );
+			}
+			else
+			{
+
+				//let us assume query[stateQuery].body is true.
+				//twe shall evaluate q.head
+				
+				var q = query[stateQuery];
+				var r = rules[stateRule].makeCopyWithFreshVarNames();
+				//var res = [];
+
+				try
+				{
+					var cur = new Subst().unify( r.head , q ); 
+					//res.push(curSubst.bindings);
+					stateRule++;
+					ret( cur.bindings );
+
+					//var nextRules = shiftWithoutMutation( rules );
+					//solveContinuation( new Program( nextRules, query) , ret);
+					//var tailResIterator = new Program( nextRules, query ).solve();
+					//return makeIterator.apply( null, res );
+									
+
+				}
+				catch(e)
+				{
+					throw e;
+					//unification failed, continue
+				}
+
+				/*
+				return makeIterator( curSubst, new Program.solve( nextRules, nextQuery ));
+				var nextQuery = query.shift();
+				return makeIterator( new Program.solve( nextRules, nextQuery ));
+				*/
 			}
 
-			return makeIterator.apply( null, res );
+		}
 
-		}
-		catch(e)
-		{
-			//unification failed, continue
-		}
-		
-		/*
-		return makeIterator( curSubst, new Program.solve( nextRules, nextQuery ));
-		var nextQuery = query.shift();
-		return makeIterator( new Program.solve( nextRules, nextQuery ));
-		*/
-	}
+
+
+	};
+
+
+	solveContinuation( this, function (cc) { 
+  		//return makeIterator(n) ; 
+  		result.push(cc);
+  		//result = result.concat( cc )
+	});
+
+	return makeIterator.apply(null,result);
 };
 
 
 
 
-Program.prototype.solve2 = function() {
-	//maybe recursive solution
-	var rules = this.rules;
-	var query = this.query;
-	var res = {};
 
-	for( var j = 0; j < query.length ; j++ )
-	{
-		//query is a list of clauses
-		//find all the clauses the fulfill query[i]
-		//then from these, continue an narrow down
-		//to queries that fulfill query[i+1]
-		/*
-		sick(joe).
-		sick(frank).
-		sick(eddie).
-		tired(joe).
-		tired(eddie).
-		sick(X), tired(X)?
-		*/
-
-		var q = query[j];
-		var nextRules = [];
-		//var res = new Subst();
-		for( var i = 0 ; i < rules.length ; i++ )
-		{
-			var rule = rules[i].makeCopyWithFreshVarNames();
-			var curSubst = new Subst().unify( rule.head , q );
-
-			//if we managed to unify -- add clause to new set of rules
-			for( var j in curSubst.bindings )
-			{
-			  var cur = curSubst.bindings[j];
-			  nextRules.push( cur );
-			}
-		//new Sulbst().unify(new Clause("foo", [new Var("X"), new Clause("baz")]),
-        //      new Clause("foo", [new Clause("bar"), new Var("Y")]));
-		}
-
-		//console.log( res );
-		rules = nextRules;
-	}
-
-	console.log( nextRules );
-/*
-makeIterator(
-      { X: new Clause("joe") },
-      { X: new Clause("eddie") }
-    )
-*/
-	return makeIterator({});
-  	//throw new TODO("Program.prototype.solve not implemented");
-};
 
